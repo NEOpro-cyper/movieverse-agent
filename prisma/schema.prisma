@@ -1,0 +1,179 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// User model
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  password      String
+  name          String
+  photo         String?
+  banner        String?
+  description   String?
+
+  // XP and Level
+  xp            Int      @default(0)
+  moviesWatched Int      @default(0)
+  episodesWatched Int    @default(0)
+  commentsCount Int      @default(0)
+  threadsCreated Int     @default(0)
+
+  // Settings
+  theme         String   @default("dark")
+  notifyEnabled Boolean  @default(true)
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  threads       Thread[]
+  replies       ThreadReply[]
+  comments      Comment[]
+  commentReplies CommentReply[]
+  notifications Notification[]
+  watchProgress WatchProgress[]
+  watchlist     Watchlist[]
+}
+
+// Community Thread
+model Thread {
+  id          String   @id @default(cuid())
+  authorId    String
+  authorName  String
+  authorPhoto String?
+  title       String
+  content     String
+  category    String   @default("general")
+  likes       Int      @default(0)
+  likesUsers  String   @default("") // comma-separated user IDs who liked
+  views       Int      @default(0)
+  replyCount  Int      @default(0)
+  pinned      Boolean  @default(false)
+  locked      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  replies     ThreadReply[]
+
+  @@index([category])
+  @@index([createdAt])
+}
+
+// Thread Reply
+model ThreadReply {
+  id          String   @id @default(cuid())
+  threadId    String
+  authorId    String
+  authorName  String
+  authorPhoto String?
+  content     String
+  likes       Int      @default(0)
+  likesUsers  String   @default("") // comma-separated user IDs who liked
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  thread      Thread   @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([threadId])
+}
+
+// Movie/TV Comment
+model Comment {
+  id          String   @id @default(cuid())
+  movieId     String
+  authorId    String
+  authorName  String
+  authorPhoto String?
+  content     String
+  likes       Int      @default(0)
+  likesUsers  String   @default("") // comma-separated user IDs who liked
+  replyCount  Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  replies     CommentReply[]
+
+  @@index([movieId])
+}
+
+// Comment Reply
+model CommentReply {
+  id          String   @id @default(cuid())
+  commentId   String
+  authorId    String
+  authorName  String
+  authorPhoto String?
+  content     String
+  likes       Int      @default(0)
+  likesUsers  String   @default("") // comma-separated user IDs who liked
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  comment     Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([commentId])
+}
+
+// Notification
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  title     String
+  message   String
+  icon      String?
+  read      Boolean  @default(false)
+  data      String?
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([read])
+}
+
+// Watch Progress
+model WatchProgress {
+  id          String   @id @default(cuid())
+  userId      String
+  movieId     String
+  movieTitle  String
+  moviePoster String?
+  movieType   String   @default("movie")
+  season      Int?
+  episode     Int?
+  progress    Float    @default(0)
+  duration    Int      @default(0)
+  updatedAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, movieId])
+  @@index([userId])
+}
+
+// Watchlist
+model Watchlist {
+  id          String   @id @default(cuid())
+  userId      String
+  movieId     String
+  movieTitle  String
+  moviePoster String?
+  movieType   String   @default("movie")
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, movieId])
+  @@index([userId])
+}
